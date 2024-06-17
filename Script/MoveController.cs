@@ -8,7 +8,9 @@ public class MoveController : MonoBehaviour
     [Header("이동및점프")]
     Rigidbody2D rigid;
     CapsuleCollider2D coll;
+    BoxCollider2D box2d;
     Animator anim;
+    Camera camMain;
     Vector3 moveDir;
     float veticalVelocity = 0f;
     [SerializeField] float jumpForce;
@@ -30,13 +32,14 @@ public class MoveController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-       
+       camMain = Camera.main;
   
     }
 
     private void Awake()
     {
         rigid = GetComponent<Rigidbody2D>();    
+        box2d = GetComponent<BoxCollider2D>();
         anim = GetComponent<Animator>();
     }
 
@@ -45,6 +48,7 @@ public class MoveController : MonoBehaviour
     {
         checkGrounded();
         moving();
+        checkAim();
         jump();
         checkGravity(); 
         doAnim();
@@ -57,7 +61,8 @@ public class MoveController : MonoBehaviour
             return;
         }
         RaycastHit2D hit =
-        Physics2D.Raycast(transform.position, Vector2.down, groundCheckLength, LayerMask.GetMask("Ground"));
+        //Physics2D.Raycast(transform.position, Vector2.down, groundCheckLength, LayerMask.GetMask("Ground"));
+        Physics2D.BoxCast(box2d.bounds.center, box2d.bounds.size, 0f, Vector2.down, 0.05f, LayerMask.GetMask("Ground"));
         if (hit)
         {
             isGround = true;
@@ -68,11 +73,41 @@ public class MoveController : MonoBehaviour
         }
         
     }
+
     private void moving()
     {
         moveDir.x = Input.GetAxisRaw("Horizontal")*moveSpeed;
         moveDir.y = rigid.velocity.y;
         rigid.velocity = moveDir;
+    }
+    private void checkAim()
+    {
+        Vector3 scale = transform.localScale;
+        if (moveDir.x < 0 && scale.x !=1.0f)
+        {
+            scale.x = 1.0f;
+            transform.localScale = scale;
+        }
+        else if (moveDir.x > 0 && scale.x != -1.0f)
+        {
+            scale.x = -1.0f;
+            transform.localScale = scale;
+        }
+        Vector2 mouseWorldPos = camMain.ScreenToWorldPoint(Input.mousePosition);
+        Vector2 playerPos = transform.position;
+        Vector2 fixedPos= mouseWorldPos - playerPos;
+        Vector3 playerscale = transform.localScale;
+        if (fixedPos.x>0&& playerscale.x != -1.0f)
+        {
+            playerscale.x = -1.0f;
+            transform.localScale= playerscale;
+        }
+        else if (fixedPos.x < 0 && playerscale.x != 1.0f)
+        {
+            playerscale.x = 1.0f;
+
+        }
+        transform.localScale = playerscale;
     }
     private void jump()
     {
