@@ -5,7 +5,7 @@ using UnityEditor;
 
 public class MoveController : MonoBehaviour
 {
-    [Header("이동및점프")]
+    
     Rigidbody2D rigid;
     CapsuleCollider2D coll;
     BoxCollider2D box2d;
@@ -13,6 +13,7 @@ public class MoveController : MonoBehaviour
     Camera camMain;
     Vector3 moveDir;
     float veticalVelocity = 0f;
+    [Header("이동및점프")]
     [SerializeField] float jumpForce;
     [SerializeField] float moveSpeed;
     [SerializeField] bool isJump;
@@ -21,6 +22,12 @@ public class MoveController : MonoBehaviour
     [Header("환경설정")]
     [SerializeField] bool showGroundCheck;
     [SerializeField] Color colorGroundCheck;
+    [Header("벽 점프")]
+    [SerializeField] bool touchWall;
+    bool isWallJump;
+    [SerializeField] float wallJumpTime = 0.3f;
+    float wallJumpTimer = 0.0f;
+
     private void OnDrawGizmos()
     {
         if (showGroundCheck == true)
@@ -28,6 +35,34 @@ public class MoveController : MonoBehaviour
             Debug.DrawLine(transform.position, transform.position - new Vector3(0, groundCheckLength), colorGroundCheck);
         }
         
+    }
+    /*    private void OnTriggerExit2D(Collider2D collision)
+        {
+            if (collision.gameObject.layer == LayerMask.NameToLayer("Wall"))
+            {
+                touchWall = false;
+            }
+        }
+        private void OnTriggerEnter2D(Collider2D collision)
+        {
+            if (collision.gameObject.layer == LayerMask.NameToLayer("Wall"))
+            {
+                touchWall= true; 
+            }
+        }*/
+    public void TriggerEnter(HitBox.ehitboxtype _type,Collider2D _col)
+    {
+        if (_col.gameObject.layer == LayerMask.NameToLayer("Wall"))
+        {
+            touchWall = true;
+        }
+    }
+    public void TriggerExit(HitBox.ehitboxtype _type, Collider2D _col)
+    {
+        if (_col.gameObject.layer == LayerMask.NameToLayer("Wall"))
+        {
+            touchWall = false;
+        }
     }
     // Start is called before the first frame update
     void Start()
@@ -111,24 +146,37 @@ public class MoveController : MonoBehaviour
     }
     private void jump()
     {
-        if (isGround==true&& Input.GetKeyDown(KeyCode.Space))
+        if (isGround&& Input.GetKeyDown(KeyCode.Space))
         {
             
             rigid.AddForce(new Vector2(0, jumpForce),ForceMode2D.Impulse);//지긋이 밀고싶을때
             
         }
+
         if (isGround == false)
         {
+            if(touchWall && moveDir.x!=0f && Input.GetKeyDown(KeyCode.Space))
+            {
+                isWallJump = true;
+            }
             return;
         }
-        if (Input.GetKeyDown(KeyCode.Space)==true)
+        if (Input.GetKeyDown(KeyCode.Space))
         {
             isJump = true;
         }
     }
     private void checkGravity()
     {
-        if (!isGround)
+        if (isWallJump)
+        {
+            isWallJump = false;
+            Vector2 dir = rigid.velocity;
+            dir.x *= -1f;
+            rigid.velocity = dir;
+            veticalVelocity = jumpForce * 0.5f;
+        }
+        else if (!isGround)
         {
             veticalVelocity += Physics.gravity.y * Time.deltaTime;
 
