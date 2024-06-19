@@ -26,8 +26,37 @@ public class MoveController : MonoBehaviour
     [SerializeField] bool touchWall;
     bool isWallJump;
     [SerializeField] float wallJumpTime = 0.3f;
-    float wallJumpTimer = 0.0f;
+    float wallJumpTimer = 0.0f;//타이머
+    [Header("대시")]
+    [SerializeField] private float dashTime = 0.3f;
+    [SerializeField] private float dashspeed = 20.0f;
 
+    float dashTimer = 0.0f;//타이머
+    //대시 이펙트
+    [SerializeField] KeyCode dashkey;
+    
+    private void dash()
+    {
+        //대시키코드
+        if (dashTimer==0.0f&&(Input.GetKeyDown(KeyCode.LeftShift)
+            ||Input.GetKeyDown(KeyCode.F)))
+        {
+            dashTimer = dashTime;
+            veticalVelocity = 0;
+/*            if (transform.localScale.x >0)//왼쪽  
+            {
+                rigid.velocity = new Vector2(-dashspeed, veticalVelocity);
+            }
+            else//오른쪽
+          
+            {
+                rigid.velocity = new Vector2(dashspeed, veticalVelocity);
+            }
+*/
+//삼중식
+            rigid.velocity = new Vector2(transform.localScale.x > 0 ? -dashspeed : dashspeed, veticalVelocity);
+        }
+    }
     private void OnDrawGizmos()
     {
         if (showGroundCheck == true)
@@ -81,12 +110,14 @@ public class MoveController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        dash();
         checkGrounded();
         moving();
         checkAim();
         jump();
         checkGravity(); 
         doAnim();
+        checkTimer();
     }
     private void checkGrounded()
     {
@@ -108,9 +139,32 @@ public class MoveController : MonoBehaviour
         }
         
     }
+    private void checkTimer()
+    {
+        if (wallJumpTimer>0.0f)
+        {
+            wallJumpTimer -= Time.deltaTime;
+            if(wallJumpTimer < 0.0f)
+            {
+                wallJumpTimer = 0.0f;
+            }
+        }
+        if (dashTimer>0.0f)
+        {
+            dashTimer -= Time.deltaTime;
+            if (dashTimer < 0.0f)
+            {
+                dashTimer = 0.0f;
+            }
+        }
+    }
 
     private void moving()
     {
+        if (wallJumpTimer >0.0f||dashTimer>0.0f)
+        {
+            return;
+        }
         moveDir.x = Input.GetAxisRaw("Horizontal")*moveSpeed;
         moveDir.y = rigid.velocity.y;
         rigid.velocity = moveDir;
@@ -168,6 +222,10 @@ public class MoveController : MonoBehaviour
     }
     private void checkGravity()
     {
+        if (dashTimer >0.0f)
+        {
+            return;
+        }
         if (isWallJump)
         {
             isWallJump = false;
@@ -175,6 +233,7 @@ public class MoveController : MonoBehaviour
             dir.x *= -1f;
             rigid.velocity = dir;
             veticalVelocity = jumpForce * 0.5f;
+            wallJumpTimer = wallJumpTime;
         }
         else if (!isGround)
         {
