@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
+using TMPro;
 using UnityEngine;
-using UnityEditor;
+using UnityEngine.UI;
 
 public class MoveController : MonoBehaviour
 {
@@ -30,19 +32,65 @@ public class MoveController : MonoBehaviour
     [Header("대시")]
     [SerializeField] private float dashTime = 0.3f;
     [SerializeField] private float dashspeed = 20.0f;
-
     float dashTimer = 0.0f;//타이머
+    TrailRenderer dashEffect;
+    [SerializeField] private float dashCoolTime = 2f;
+    float dashCoolTimer = 0.0f;
+    [Header("대시UI")]
+    [SerializeField] GameObject objDashCoolTime;
+    [SerializeField] Image imgFill;
+    [SerializeField] TMP_Text TextCoolTime;
+
+
     //대시 이펙트
     [SerializeField] KeyCode dashkey;
+
     
+
+    void Start()
+    {
+        camMain = Camera.main;
+
+    }
+
+    private void Awake()
+    {
+        rigid = GetComponent<Rigidbody2D>();
+        box2d = GetComponent<BoxCollider2D>();
+        anim = GetComponent<Animator>();
+        dashEffect = GetComponent<TrailRenderer>();
+        dashEffect.enabled = false;
+        initUI();
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        dash();
+        checkGrounded();
+        moving();
+        checkAim();
+        jump();
+        checkGravity();
+        doAnim();
+        checkTimer();
+    }
+    private void initUI()
+    {
+        objDashCoolTime.SetActive(false);
+        imgFill.fillAmount = 0;
+        TextCoolTime.text = "";
+    }
     private void dash()
     {
         //대시키코드
-        if (dashTimer==0.0f&&(Input.GetKeyDown(KeyCode.LeftShift)
+        if (dashTimer==0.0f&&dashCoolTimer==0.0f&&(Input.GetKeyDown(KeyCode.LeftShift)
             ||Input.GetKeyDown(KeyCode.F)))
         {
+            dashCoolTimer = dashCoolTime;
             dashTimer = dashTime;
             veticalVelocity = 0;
+            dashEffect.enabled = true;
 /*            if (transform.localScale.x >0)//왼쪽  
             {
                 rigid.velocity = new Vector2(-dashspeed, veticalVelocity);
@@ -94,31 +142,7 @@ public class MoveController : MonoBehaviour
         }
     }
     // Start is called before the first frame update
-    void Start()
-    {
-       camMain = Camera.main;
-  
-    }
-
-    private void Awake()
-    {
-        rigid = GetComponent<Rigidbody2D>();    
-        box2d = GetComponent<BoxCollider2D>();
-        anim = GetComponent<Animator>();
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        dash();
-        checkGrounded();
-        moving();
-        checkAim();
-        jump();
-        checkGravity(); 
-        doAnim();
-        checkTimer();
-    }
+    
     private void checkGrounded()
     {
         isGround = false;
@@ -155,8 +179,25 @@ public class MoveController : MonoBehaviour
             if (dashTimer < 0.0f)
             {
                 dashTimer = 0.0f;
+                dashEffect.enabled = false;
+                dashEffect.Clear();
             }
         }
+        if (dashCoolTimer > 0.0f)
+        {
+            
+            if (!objDashCoolTime.activeSelf)
+            {
+                objDashCoolTime.SetActive(true);
+            }
+            dashCoolTimer -= Time.deltaTime;
+            if (dashCoolTimer < 0.0f)
+            {
+                dashCoolTimer = 0.0f;
+                objDashCoolTime.SetActive(false);
+            }
+            imgFill.fillAmount = 1 - dashCoolTimer / dashCoolTime;
+        }   TextCoolTime.text = dashCoolTimer.ToString("F1"); 
     }
 
     private void moving()
